@@ -32,16 +32,21 @@ const INITIAL_STATE: GameState = {
   gameOverReason: '',
   won: false,
   phase: 'title',
+  speed: 'normal',
+  activePanel: null,
+  toast: null,
 }
 
 interface Store extends GameState {
   startGame: () => void
-  nextDay: () => void
+  tick: () => void
   resolveEvent: (choiceIndex: number) => void
   produce: (y: number, ff: number, ps: number, r: number) => void
   sell: (client: 'perugia' | 'spoleto' | 'gas', y: number, ff: number, ps: number, r: number) => void
   fixFence: () => void
-  setPhase: (phase: GameState['phase']) => void
+  setSpeed: (s: GameState['speed']) => void
+  setPanel: (p: GameState['activePanel']) => void
+  clearToast: () => void
   saveGame: () => void
   loadGame: () => boolean
 }
@@ -50,24 +55,27 @@ export const useGameStore = create<Store>((set, get) => ({
   ...INITIAL_STATE,
 
   startGame: () => {
-    set({ ...INITIAL_STATE, phase: 'playing', flock: createInitialFlock() })
+    set({ ...INITIAL_STATE, phase: 'playing', speed: 'normal', flock: createInitialFlock() })
   },
 
-  nextDay: () => {
+  tick: () => {
     const state = get()
-    if (state.activeEvent) return
+    if (state.activeEvent || state.gameOver || state.won) return
     const patch = advanceDay(state)
     set(patch as Partial<Store>)
   },
 
   resolveEvent: (choiceIndex) => {
-    const state = get()
-    const patch = processEventChoice(state, choiceIndex)
-    set(patch as Partial<Store>)
+    const patch = processEventChoice(get(), choiceIndex)
+    set({ ...(patch as Partial<Store>), speed: get().speed === 'paused' ? 'normal' : get().speed })
   },
 
   produce: (y, ff, ps, r) => {
     const patch = produceProducts(get(), y, ff, ps, r)
+    if (Object.keys(patch).length === 0) {
+      set({ toast: { message: 'Latte insufficiente per questa produzione', type: 'warning' } })
+      return
+    }
     set(patch as Partial<Store>)
   },
 
@@ -77,15 +85,23 @@ export const useGameStore = create<Store>((set, get) => ({
   },
 
   fixFence: () => {
-    const patch = repairFence(get())
+    const state = get()
+    if (state.money < 80) {
+      set({ toast: { message: 'Non hai abbastanza soldi per riparare (€80)', type: 'warning' } })
+      return
+    }
+    const patch = repairFence(state)
     set(patch as Partial<Store>)
   },
 
-  setPhase: (phase) => set({ phase }),
+  setSpeed: (speed) => set({ speed }),
+
+  setPanel: (activePanel) => set({ activePanel }),
+
+  clearToast: () => set({ toast: null }),
 
   saveGame: () => {
-    const state = get()
-    localStorage.setItem('fontemanna_save', JSON.stringify(state))
+    localStorage.setItem('fontemanna_save', JSON.stringify(get()))
   },
 
   loadGame: () => {
@@ -93,7 +109,7 @@ export const useGameStore = create<Store>((set, get) => ({
     if (!raw) return false
     try {
       const saved = JSON.parse(raw) as GameState
-      set({ ...saved, phase: 'playing' })
+      set({ ...saved, phase: 'playing', speed: 'normal' })
       return true
     } catch {
       return false

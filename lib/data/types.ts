@@ -135,5 +135,14 @@ export interface GameState {
   gameOver: boolean
   gameOverReason: string
   won: boolean
-  phase: 'title' | 'playing' | 'event' | 'market' | 'gameover'
+  phase: 'title' | 'playing' | 'gameover'
+
+  // Tempo reale
+  speed: 'paused' | 'slow' | 'normal' | 'fast'
+
+  // Pannello attivo (cosa l'utente ha cliccato sulla mappa)
+  activePanel: 'flock' | 'production' | 'market' | 'compliance' | null
+
+  // Notifiche toast temporanee
+  toast: { message: string; type: 'info' | 'warning' | 'success' | 'danger' } | null
 }

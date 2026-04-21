@@ -1,8 +1,23 @@
-import { GameState, Season, Weather, LogEntry } from '../data/types'
+import { GameState, Season, Weather, LogEntry, WeatherState } from '../data/types'
 import { getSeasonalEvents } from '../data/events'
 
 const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter']
 const DAYS_PER_SEASON = 30
+
+const SEASON_WEATHERS: Record<Season, Weather[]> = {
+  spring: ['sunny', 'cloudy', 'rainy', 'rainy', 'stormy'],
+  summer: ['sunny', 'sunny', 'hot', 'hot', 'cloudy', 'stormy'],
+  autumn: ['cloudy', 'rainy', 'stormy', 'sunny', 'cloudy'],
+  winter: ['cloudy', 'snowy', 'snowy', 'rainy', 'cloudy', 'sunny'],
+}
+
+function nextWeather(season: Season, current: Weather): WeatherState {
+  const pool = SEASON_WEATHERS[season]
+  const next = pool[Math.floor(Math.random() * pool.length)]
+  const forecast = pool[Math.floor(Math.random() * pool.length)]
+  const daysUntilChange = 2 + Math.floor(Math.random() * 4)
+  return { current: next, forecast, daysUntilChange }
+}
 
 export function getSeasonIndex(season: Season) {
   return SEASONS.indexOf(season)
@@ -48,6 +63,12 @@ export function advanceDay(state: GameState): Partial<GameState> {
   const fenceDeg = state.weather.current === 'stormy' ? 3 : 1
   const newFence = Math.max(0, state.fenceIntegrity - fenceDeg)
 
+  // Meteo dinamico
+  const daysLeft = state.weather.daysUntilChange - 1
+  const newWeather = daysLeft <= 0
+    ? nextWeather(state.season, state.weather.current)
+    : { ...state.weather, daysUntilChange: daysLeft }
+
   // Trump index random walk (slow)
   const trumpDelta = (Math.random() - 0.45) * 0.04
   const newTrump = Math.min(2.5, Math.max(1.0, state.trumpCostIndex + trumpDelta))
@@ -89,13 +110,14 @@ export function advanceDay(state: GameState): Partial<GameState> {
     trumpCostIndex: newTrump,
     inventory: newInventory,
     fenceIntegrity: newFence,
+    weather: newWeather,
     activeEvent: activeEvent ?? null,
     giudittaAvailableDay: giudittaDay,
     log: [...state.log, log],
     gameOver,
     won,
     gameOverReason: gameOver ? 'Fontemanna è in rosso. Le banche hanno rilevato il caseificio.' : '',
-    phase: activeEvent ? 'event' : state.phase,
+    phase: state.phase,
   }
 }
 
@@ -143,7 +165,6 @@ export function processEventChoice(state: GameState, choiceIndex: number): Parti
       gas: Math.min(100, Math.max(0, state.reputation.gas + (e.reputationGAS ?? 0))),
     },
     activeEvent: null,
-    phase: 'playing',
     log: [...state.log, log],
   }
 }
