@@ -2,62 +2,63 @@
 import { useGameStore } from '@/lib/store/gameStore'
 
 const SEASON_LABEL = { spring: '🌸 Primavera', summer: '☀️ Estate', autumn: '🍂 Autunno', winter: '❄️ Inverno' }
-const SEASON_BG = { spring: 'from-green-500 to-green-400', summer: 'from-yellow-500 to-amber-400', autumn: 'from-orange-600 to-amber-500', winter: 'from-blue-500 to-blue-400' }
+const SEASON_BG    = { spring: 'from-green-600 to-green-500', summer: 'from-amber-500 to-yellow-400', autumn: 'from-orange-700 to-amber-500', winter: 'from-blue-600 to-blue-400' }
 
 export default function TopBar() {
-  const { day, season, year, money, trumpCostIndex, speed, setSpeed, saveGame } = useGameStore()
-
-  const trumpDanger = trumpCostIndex > 2.0 ? 'text-red-400 font-bold animate-pulse' : trumpCostIndex > 1.5 ? 'text-orange-300 font-semibold' : 'text-green-300'
+  const { day, season, year, money, trumpCostIndex, speed, setSpeed, saveGame, fenceIntegrity, compliance } = useGameStore()
+  const minComp = Math.min(compliance.asl, compliance.nas, compliance.forestale, compliance.regione)
 
   const speeds = [
-    { key: 'paused', icon: '⏸', label: 'Pausa' },
-    { key: 'slow', icon: '🐢', label: 'Lento' },
-    { key: 'normal', icon: '▶', label: 'Normale' },
-    { key: 'fast', icon: '⏩', label: 'Veloce' },
+    { key: 'paused', icon: '⏸' },
+    { key: 'slow',   icon: '🐢' },
+    { key: 'normal', icon: '▶' },
+    { key: 'fast',   icon: '⏩' },
   ] as const
 
   return (
-    <div className={`bg-gradient-to-r ${SEASON_BG[season]} rounded-2xl shadow-lg px-4 py-2.5 flex items-center gap-3 flex-wrap`}>
-      {/* Stagione e tempo */}
-      <div className="text-white font-black text-base flex-shrink-0" style={{ fontFamily: 'Georgia, serif' }}>
+    <div className={`bg-gradient-to-r ${SEASON_BG[season]} flex items-center gap-2 px-3 py-1.5 flex-shrink-0`}>
+      {/* Stagione + tempo */}
+      <span className="text-white font-black text-sm tracking-tight" style={{fontFamily:'Georgia,serif'}}>
         {SEASON_LABEL[season]}
-      </div>
-      <div className="text-white/80 text-sm font-medium">
-        Anno {year}/3 · Giorno {day}/30
-      </div>
+      </span>
+      <span className="text-white/70 text-xs">A{year}/3 · G{day}/30</span>
 
-      <div className="flex-1" />
+      {/* Separatore */}
+      <div className="flex-1"/>
+
+      {/* Alert recinzione */}
+      {fenceIntegrity < 50 && (
+        <span className="text-xs bg-red-500/80 text-white px-2 py-0.5 rounded-full font-bold animate-pulse hidden sm:inline">🔨 Recint. {fenceIntegrity}%</span>
+      )}
+
+      {/* Alert normative */}
+      {minComp < 40 && (
+        <span className="text-xs bg-orange-500/80 text-white px-2 py-0.5 rounded-full font-bold animate-pulse hidden sm:inline">⚠️ Conformità</span>
+      )}
 
       {/* Indice Trump */}
-      <div className={`text-xs ${trumpDanger} flex-shrink-0`}>
-        📈 Costi ×{trumpCostIndex.toFixed(2)}
-      </div>
+      <span className={`text-xs font-bold hidden md:inline ${trumpCostIndex>2?'text-red-200 animate-pulse':trumpCostIndex>1.5?'text-yellow-200':'text-white/70'}`}>
+        📈×{trumpCostIndex.toFixed(2)}
+      </span>
 
       {/* Soldi */}
-      <div className={`text-lg font-black flex-shrink-0 ${money < 200 ? 'text-red-200 animate-pulse' : 'text-white'}`}>
+      <span className={`text-base font-black ${money<200?'text-red-200 animate-pulse':'text-white'}`}>
         €{money.toFixed(0)}
-      </div>
+      </span>
 
-      {/* Controlli velocità */}
-      <div className="flex gap-1 flex-shrink-0 bg-black/20 rounded-xl p-1">
+      {/* Velocità */}
+      <div className="flex gap-0.5 bg-black/20 rounded-xl p-0.5">
         {speeds.map(s => (
-          <button
-            key={s.key}
-            onClick={() => setSpeed(s.key)}
-            title={s.label}
-            className={`w-9 h-8 rounded-lg text-sm font-bold transition-all active:scale-90 ${speed === s.key ? 'bg-white text-gray-800 shadow-md' : 'text-white/80 hover:bg-white/20'}`}
-          >
+          <button key={s.key} onClick={() => setSpeed(s.key)} title={s.key}
+            className={`w-8 h-7 rounded-lg text-xs font-bold transition-all active:scale-90
+              ${speed===s.key?'bg-white text-gray-800 shadow':'text-white/80 hover:bg-white/20'}`}>
             {s.icon}
           </button>
         ))}
       </div>
 
       {/* Salva */}
-      <button
-        onClick={saveGame}
-        className="flex-shrink-0 px-3 h-9 rounded-xl text-xs font-bold bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95 border border-white/30"
-        title="Salva partita"
-      >
+      <button onClick={saveGame} className="w-8 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all active:scale-95" title="Salva">
         💾
       </button>
     </div>
