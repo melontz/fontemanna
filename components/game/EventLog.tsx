@@ -17,7 +17,7 @@ export default function EventLog() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [log.length])
 
-  const recent = [...log].reverse().slice(0, 40)
+  const recent = [...log].reverse().slice(0, 6)
 
   return (
     <div className="flex flex-col h-full min-h-0">
